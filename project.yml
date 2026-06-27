@@ -36,6 +36,9 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         GENERATE_INFOPLIST_FILE: true
         INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "Stripie needs your location to accept Tap to Pay payments, as required by Stripe."
+        # Stripe Terminal validates these at discovery and aborts if missing.
+        INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription: "Stripie uses Bluetooth to connect to card readers for Tap to Pay."
+        INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription: "Stripie uses Bluetooth to connect to card readers for Tap to Pay."
         INFOPLIST_KEY_UILaunchScreen_Generation: true
         # `targeted` checks explicitly-concurrent code but stays lenient on the
         # un-audited Stripe Terminal SDK types. Combined with Swift 5 language
