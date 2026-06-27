@@ -52,14 +52,38 @@ struct PaymentViewModelTests {
         let vm = PaymentViewModel.makeTestInstance()
         #expect(!vm.canCharge)
     }
+
+    // MARK: - Charge Flow
+
+    // `charge()` is guarded by `canCharge`, which requires a connected Stripe
+    // Terminal reader. A reader can only be obtained from the live SDK, so the
+    // full collect/confirm/capture path is covered by integration testing on a
+    // device. Here we verify the guard: with no reader connected, `charge()`
+    // makes no backend calls and leaves state untouched.
+    @Test("charge does nothing when no reader is connected")
+    func testChargeRequiresConnectedReader() async {
+        let mock = MockAPIClient()
+        await mock.stub { _ in throw NetworkError.invalidResponse }
+        let vm = PaymentViewModel.makeTestInstance(apiClient: mock)
+        vm.appendDigit(5)
+        vm.appendDigit(0) // $0.50 entered, but no reader connected.
+
+        #expect(!vm.canCharge)
+        await vm.charge()
+
+        let calls = await mock.requestLog
+        #expect(calls.isEmpty)
+        #expect(vm.paymentState == .idle)
+    }
 }
 
 // MARK: - Test Factory
 
 private extension PaymentViewModel {
-    static func makeTestInstance() -> PaymentViewModel {
-        let client = APIClient()
-        let terminal = TerminalService(apiClient: client)
-        return PaymentViewModel(terminal: terminal, apiClient: client)
+    static func makeTestInstance(
+        apiClient: any APIRequesting = MockAPIClient()
+    ) -> PaymentViewModel {
+        let terminal = TerminalService(apiClient: apiClient)
+        return PaymentViewModel(terminal: terminal, apiClient: apiClient)
     }
 }

@@ -1,8 +1,9 @@
 import Foundation
 @testable import Stripie
 
-/// In-memory stub for APIClient. Configure `responses` keyed by endpoint path.
-actor MockAPIClient {
+/// In-memory stub for `APIRequesting`. Configure a response builder that maps an
+/// endpoint to a stubbed value; inspect `requestLog` to assert the calls made.
+actor MockAPIClient: APIRequesting {
     typealias ResponseBuilder = (APIEndpoint) throws -> Any
 
     var responseBuilder: ResponseBuilder?

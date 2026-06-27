@@ -6,14 +6,14 @@ iOS point-of-sale app powered by Stripe Terminal (Tap to Pay on iPhone).
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Language | Swift 6 (strict concurrency) |
-| UI | SwiftUI + `@Observable` |
-| Architecture | MVVM |
-| Payments | Stripe Terminal SDK v4.x |
-| Backend | FastAPI + Neon/Postgres |
-| Min iOS | 17.0 |
+| Layer        | Technology                   |
+| ------------ | ---------------------------- |
+| Language     | Swift 6 (strict concurrency) |
+| UI           | SwiftUI + `@Observable`      |
+| Architecture | MVVM                         |
+| Payments     | Stripe Terminal SDK v4.x     |
+| Backend      | FastAPI + Neon/Postgres      |
+| Min iOS      | 17.0                         |
 
 ---
 
@@ -21,13 +21,14 @@ iOS point-of-sale app powered by Stripe Terminal (Tap to Pay on iPhone).
 
 ### 1. Create the Xcode Project
 
-This repository contains all Swift source files. You must create the Xcode project wrapper:
+> **This repo is source-only.** There is no `.xcodeproj` checked in — `Package.swift`
+> only documents the SPM dependency. You must create the Xcode project wrapper once:
 
 1. Open Xcode → **File → New → Project**
 2. Choose **iOS → App**
 3. Set:
    - Product Name: `Stripie`
-   - Bundle ID: `com.yourcompany.stripie`
+   - Bundle ID: `com.dushin.stripie`
    - Interface: SwiftUI
    - Language: Swift
    - Minimum Deployment: iOS 17.0
@@ -41,8 +42,8 @@ This repository contains all Swift source files. You must create the Xcode proje
 
 In Xcode: **File → Add Package Dependencies**
 
-| Package | URL | Version |
-|---|---|---|
+| Package         | URL                                             | Version  |
+| --------------- | ----------------------------------------------- | -------- |
 | Stripe Terminal | `https://github.com/stripe/stripe-terminal-ios` | `~> 4.0` |
 
 ### 3. Add Entitlements

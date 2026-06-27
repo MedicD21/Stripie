@@ -14,14 +14,14 @@ final class TransactionListViewModel {
 
     // MARK: - Private
 
-    private let apiClient: APIClient
+    private let apiClient: any APIRequesting
     private var cursor: String?
     private let pageSize = 25
     private let logger = Logger(subsystem: "com.stripie", category: "TransactionListViewModel")
 
     // MARK: - Init
 
-    init(apiClient: APIClient) {
+    init(apiClient: any APIRequesting) {
         self.apiClient = apiClient
     }
 

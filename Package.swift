@@ -1,8 +1,8 @@
 // swift-tools-version: 5.9
-// This Package.swift documents SPM dependencies.
-// Open the .xcodeproj in Xcode to build and run the iOS app.
-// To create the project: File → New → Project → "App", name "Stripie",
-// then add these packages via: File → Add Package Dependencies
+// This repository is source-only: it contains the Swift files for the Stripie
+// iOS app but no .xcodeproj wrapper. This Package.swift documents the SPM
+// dependency the app target needs. See README.md → "Getting Started" for how to
+// create the Xcode project and add these source files to its target.
 
 import PackageDescription
 

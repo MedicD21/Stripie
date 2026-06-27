@@ -16,7 +16,7 @@ final class PaymentViewModel {
     // MARK: - Dependencies
 
     private let terminal: TerminalService
-    private let apiClient: APIClient
+    private let apiClient: any APIRequesting
     private let logger = Logger(subsystem: "com.stripie", category: "PaymentViewModel")
 
     // MARK: - Computed
@@ -32,7 +32,7 @@ final class PaymentViewModel {
 
     // MARK: - Init
 
-    init(terminal: TerminalService, apiClient: APIClient) {
+    init(terminal: TerminalService, apiClient: any APIRequesting) {
         self.terminal = terminal
         self.apiClient = apiClient
     }
@@ -53,10 +53,11 @@ final class PaymentViewModel {
             let intentResponse: PaymentIntentResponse = try await apiClient.request(.createPaymentIntent(request))
             logger.info("PaymentIntent created: \(intentResponse.id)")
 
-            // 2. Collect payment method via Terminal (Tap to Pay)
+            // 2. Collect payment method via Terminal (Tap to Pay), then confirm.
             paymentState = .collectingPayment
             let confirmedIntent = try await terminal.collectPayment(
-                paymentIntentClientSecret: intentResponse.clientSecret
+                paymentIntentClientSecret: intentResponse.clientSecret,
+                onConfirming: { [weak self] in self?.paymentState = .confirming }
             )
             logger.info("Payment collected and confirmed: \(confirmedIntent.stripeId ?? "")")
 
@@ -70,12 +71,12 @@ final class PaymentViewModel {
             logger.info("Payment captured: \(intentResponse.id)")
 
         } catch let appError as AppError {
-            paymentState = .failed(appError.localizedDescription ?? "Payment failed")
+            paymentState = .failed(appError.localizedDescription)
             error = appError
-            logger.error("Payment failed: \(appError.localizedDescription ?? "")")
+            logger.error("Payment failed: \(appError.localizedDescription)")
 
         } catch let terminalError as TerminalError {
-            let message = terminalError.localizedDescription ?? "Payment failed"
+            let message = terminalError.localizedDescription
             paymentState = .failed(message)
             error = .terminal(terminalError)
             logger.error("Terminal error: \(message)")

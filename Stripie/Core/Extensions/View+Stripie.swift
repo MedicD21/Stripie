@@ -16,7 +16,7 @@ private struct ErrorBannerModifier: ViewModifier {
         content
             .safeAreaInset(edge: .bottom) {
                 if let error {
-                    ErrorBannerView(message: error.localizedDescription ?? "An error occurred") {
+                    ErrorBannerView(message: error.localizedDescription) {
                         self.error = nil
                     }
                     .transition(.move(edge: .bottom).combined(with: .opacity))

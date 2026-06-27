@@ -26,13 +26,13 @@ final class TerminalService: NSObject {
 
     // MARK: - Private
 
-    private var apiClient: APIClient
+    private let apiClient: any APIRequesting
     private var discoveryCancelable: Cancelable?
     private let logger = Logger(subsystem: "com.stripie", category: "TerminalService")
 
     // MARK: - Init
 
-    init(apiClient: APIClient) {
+    init(apiClient: any APIRequesting) {
         self.apiClient = apiClient
     }
 
@@ -140,6 +140,7 @@ final class TerminalService: NSObject {
                     } else {
                         self.connectedReader = nil
                         self.connectionState = .disconnected
+                        self.logger.info("Reader disconnected")
                         continuation.resume()
                     }
                 }
@@ -151,11 +152,17 @@ final class TerminalService: NSObject {
 
     /// Collects and confirms a payment for the given PaymentIntent (created by the backend).
     /// After this returns, call the backend `/capture` endpoint.
-    func collectPayment(paymentIntentClientSecret: String) async throws -> PaymentIntent {
+    ///
+    /// - Parameter onConfirming: Invoked after the payment method is collected and just
+    ///   before the SDK confirms the intent, so the UI can reflect the `.confirming` state.
+    func collectPayment(
+        paymentIntentClientSecret: String,
+        onConfirming: @MainActor () -> Void = {}
+    ) async throws -> PaymentIntent {
         guard connectedReader != nil else { throw TerminalError.readerNotConnected }
 
         let intent: PaymentIntent = try await withCheckedThrowingContinuation { continuation in
-            Terminal.shared.retrievePaymentIntent(clientSecret: paymentIntentClientSecret) { [weak self] intent, error in
+            Terminal.shared.retrievePaymentIntent(clientSecret: paymentIntentClientSecret) { intent, error in
                 Task { @MainActor in
                     if let error {
                         continuation.resume(throwing: TerminalError.paymentFailed(error.localizedDescription))
@@ -169,7 +176,7 @@ final class TerminalService: NSObject {
         }
 
         let collected: PaymentIntent = try await withCheckedThrowingContinuation { continuation in
-            Terminal.shared.collectPaymentMethod(intent) { [weak self] collectedIntent, error in
+            Terminal.shared.collectPaymentMethod(intent) { collectedIntent, error in
                 Task { @MainActor in
                     if let error {
                         continuation.resume(throwing: TerminalError.paymentFailed(error.localizedDescription))
@@ -182,6 +189,7 @@ final class TerminalService: NSObject {
             }
         }
 
+        onConfirming()
         return try await confirm(paymentIntent: collected)
     }
 
@@ -269,10 +277,10 @@ extension TerminalService: LocalMobileReaderDelegate {
 
 /// Fetches ephemeral Terminal connection tokens from the Stripie backend.
 private final class BackendConnectionTokenProvider: NSObject, ConnectionTokenProvider, @unchecked Sendable {
-    private let apiClient: APIClient
+    private let apiClient: any APIRequesting
     private let logger = Logger(subsystem: "com.stripie", category: "TokenProvider")
 
-    init(apiClient: APIClient) {
+    init(apiClient: any APIRequesting) {
         self.apiClient = apiClient
     }
 
