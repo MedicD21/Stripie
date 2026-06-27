@@ -4,7 +4,7 @@ import Foundation
 /// In-memory stub for `APIRequesting`. Configure a response builder that maps an
 /// endpoint to a stubbed value; inspect `requestLog` to assert the calls made.
 actor MockAPIClient: APIRequesting {
-    typealias ResponseBuilder = (APIEndpoint) throws -> Any
+    typealias ResponseBuilder = @Sendable (APIEndpoint) throws -> Any
 
     var responseBuilder: ResponseBuilder?
     var requestLog: [APIEndpoint] = []
@@ -13,7 +13,7 @@ actor MockAPIClient: APIRequesting {
         responseBuilder = builder
     }
 
-    func request<T: Decodable>(_ endpoint: APIEndpoint) async throws -> T {
+    func request<T: Decodable & Sendable>(_ endpoint: APIEndpoint) async throws -> T {
         requestLog.append(endpoint)
         guard let builder = responseBuilder else {
             throw NetworkError.invalidResponse

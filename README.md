@@ -8,7 +8,7 @@ iOS point-of-sale app powered by Stripe Terminal (Tap to Pay on iPhone).
 
 | Layer        | Technology                   |
 | ------------ | ---------------------------- |
-| Language     | Swift 6 (strict concurrency) |
+| Language     | Swift 5 mode (targeted concurrency) |
 | UI           | SwiftUI + `@Observable`      |
 | Architecture | MVVM                         |
 | Payments     | Stripe Terminal SDK v4.x     |
@@ -115,7 +115,10 @@ Enter amount
 
 ## Development Notes
 
-- **Swift 6 strict concurrency** is on. All concurrency warnings are errors.
+- **Swift 5 language mode** with `targeted` strict concurrency. (Swift 6 mode's
+  `sending`/region-isolation checks are incompatible with the Stripe Terminal v4
+  SDK, which is not yet concurrency-audited; revisit when the SDK adds Sendable
+  annotations.)
 - **`@Observable`** is required for all ViewModels — never `ObservableObject`/`@Published`.
 - **Stripe secret key** never touches the iOS client. All secret operations go through FastAPI.
 - **Location permission** must be granted before Terminal initializes (required by Stripe).

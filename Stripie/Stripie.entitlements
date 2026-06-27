@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  Tap to Pay on iPhone requires this entitlement, which Apple grants only
+	  after approving your account for the capability. Until approved, leave it
+	  commented out or signing will fail. Once approved, uncomment:
+
+	  <key>com.apple.developer.proximity-reader.payment.acceptance</key>
+	  <true/>
+	-->
+</dict>
+</plist>

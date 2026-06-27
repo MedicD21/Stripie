@@ -5,29 +5,26 @@ struct RootView: View {
 
     var body: some View {
         TabView {
-            Tab("Charge", systemImage: "creditcard.fill") {
-                PaymentView(
-                    viewModel: PaymentViewModel(
-                        terminal: appState.terminalService,
-                        apiClient: appState.apiClient
-                    )
+            PaymentView(
+                viewModel: PaymentViewModel(
+                    terminal: appState.terminalService,
+                    apiClient: appState.apiClient
                 )
-            }
+            )
+            .tabItem { Label("Charge", systemImage: "creditcard.fill") }
 
-            Tab("Transactions", systemImage: "list.bullet.rectangle") {
-                TransactionListView(
-                    viewModel: TransactionListViewModel(apiClient: appState.apiClient)
-                )
-            }
+            TransactionListView(
+                viewModel: TransactionListViewModel(apiClient: appState.apiClient)
+            )
+            .tabItem { Label("Transactions", systemImage: "list.bullet.rectangle") }
 
-            Tab("Reader", systemImage: "iphone.radiowaves.left.and.right") {
-                ReaderConnectionView(
-                    viewModel: ReaderViewModel(
-                        terminal: appState.terminalService,
-                        location: appState.locationService
-                    )
+            ReaderConnectionView(
+                viewModel: ReaderViewModel(
+                    terminal: appState.terminalService,
+                    location: appState.locationService
                 )
-            }
+            )
+            .tabItem { Label("Reader", systemImage: "iphone.radiowaves.left.and.right") }
         }
         .task { appState.onAppear() }
     }

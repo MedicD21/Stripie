@@ -32,7 +32,7 @@ actor APIClient {
 
     // MARK: - Public
 
-    func request<T: Decodable>(_ endpoint: APIEndpoint) async throws -> T {
+    func request<T: Decodable & Sendable>(_ endpoint: APIEndpoint) async throws -> T {
         let urlRequest = try buildRequest(for: endpoint)
         logger.debug("→ \(endpoint.method) \(urlRequest.url?.path ?? "")")
 

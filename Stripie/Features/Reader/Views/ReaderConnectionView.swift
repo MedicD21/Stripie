@@ -1,5 +1,5 @@
 import SwiftUI
-import StripeTerminalSDK
+import StripeTerminal
 
 struct ReaderConnectionView: View {
     @State private var viewModel: ReaderViewModel
@@ -116,7 +116,7 @@ private struct ReaderRow: View {
             HStack {
                 Image(systemName: "iphone")
                     .font(.title3)
-                    .foregroundStyle(.accent)
+                    .foregroundStyle(Color.accentColor)
                     .frame(width: 32)
 
                 VStack(alignment: .leading, spacing: 2) {

@@ -6,7 +6,7 @@ import Foundation
 @Suite("TransactionListViewModel")
 struct TransactionListViewModelTests {
 
-    private func makeRecords(ids: [String]) -> [TransactionRecord] {
+    nonisolated private static func makeRecords(ids: [String]) -> [TransactionRecord] {
         ids.map { id in
             TransactionRecord(
                 id: id,
@@ -22,7 +22,7 @@ struct TransactionListViewModelTests {
     @Test("loadInitial populates transactions from the API")
     func testLoadInitial() async {
         let mock = MockAPIClient()
-        let records = makeRecords(ids: ["pi_1", "pi_2"])
+        let records = Self.makeRecords(ids: ["pi_1", "pi_2"])
         await mock.stub { _ in
             TransactionListResponse(transactions: records, hasMore: false)
         }
@@ -44,12 +44,12 @@ struct TransactionListViewModelTests {
             case .transactions(_, let startingAfter):
                 if startingAfter == nil {
                     return TransactionListResponse(
-                        transactions: self.makeRecords(ids: ["pi_1", "pi_2"]),
+                        transactions: Self.makeRecords(ids: ["pi_1", "pi_2"]),
                         hasMore: true
                     )
                 } else {
                     return TransactionListResponse(
-                        transactions: self.makeRecords(ids: ["pi_3"]),
+                        transactions: Self.makeRecords(ids: ["pi_3"]),
                         hasMore: false
                     )
                 }

@@ -4,7 +4,7 @@
 //   - com.apple.developer.proximity-reader.payment.acceptance (Tap to Pay)
 //   - NSLocationWhenInUseUsageDescription in Info.plist
 import Foundation
-import StripeTerminalSDK
+import StripeTerminal
 import OSLog
 
 /// Central service managing the Stripe Terminal SDK lifecycle.
@@ -27,6 +27,7 @@ final class TerminalService: NSObject {
     // MARK: - Private
 
     private let apiClient: any APIRequesting
+    private let tokenProvider: BackendConnectionTokenProvider
     private var discoveryCancelable: Cancelable?
     private let logger = Logger(subsystem: "com.stripie", category: "TerminalService")
 
@@ -34,6 +35,7 @@ final class TerminalService: NSObject {
 
     init(apiClient: any APIRequesting) {
         self.apiClient = apiClient
+        self.tokenProvider = BackendConnectionTokenProvider(apiClient: apiClient)
     }
 
     // MARK: - Initialization
@@ -41,9 +43,12 @@ final class TerminalService: NSObject {
     func initialize() {
         guard !isInitialized else { return }
 
-        let tokenProvider = BackendConnectionTokenProvider(apiClient: apiClient)
-        let config = TerminalConfiguration()
-        Terminal.initialize(configuration: config, tokenProvider: tokenProvider, delegate: self)
+        // In v4 the token provider must be set before `Terminal.shared` is first
+        // accessed; the delegate is assigned on the shared instance afterward.
+        if !Terminal.hasTokenProvider() {
+            Terminal.setTokenProvider(tokenProvider)
+        }
+        Terminal.shared.delegate = self
         isInitialized = true
         logger.info("Stripe Terminal initialized")
     }
@@ -58,11 +63,13 @@ final class TerminalService: NSObject {
         discoveredReaders = []
         connectionState = .discovering
 
-        let discoveryConfig = LocalMobileDiscoveryConfiguration(simulated: false)
+        let discoveryConfig = try TapToPayDiscoveryConfigurationBuilder()
+            .setSimulated(false)
+            .build()
 
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             discoveryCancelable = Terminal.shared.discoverReaders(
-                config: discoveryConfig,
+                discoveryConfig,
                 delegate: self
             ) { [weak self] error in
                 Task { @MainActor [weak self] in
@@ -82,7 +89,11 @@ final class TerminalService: NSObject {
     }
 
     func stopDiscovery() {
-        discoveryCancelable?.cancel()
+        discoveryCancelable?.cancel { [logger] error in
+            if let error {
+                logger.debug("Cancel discovery failed: \(error.localizedDescription)")
+            }
+        }
         discoveryCancelable = nil
         isDiscovering = false
         if case .discovering = connectionState {
@@ -97,22 +108,19 @@ final class TerminalService: NSObject {
 
         connectionState = .connecting
 
-        let params = LocalMobileConnectionConfiguration(
-            locationId: reader.location?.stripeId ?? "",
-            enableAutoReconnect: true,
-            autoReconnectDelegate: nil
-        )
+        let params = try TapToPayConnectionConfigurationBuilder(
+            delegate: self,
+            locationId: reader.location?.stripeId ?? ""
+        ).build()
 
-        let connected: Reader = try await withCheckedThrowingContinuation { continuation in
-            Terminal.shared.connectLocalMobileReader(
-                reader: reader,
-                delegate: self,
-                connectionConfig: params
-            ) { [weak self] connectedReader, error in
-                Task { @MainActor [weak self] in
-                    guard let self else { return }
+        let connected: Reader
+        do {
+            connected = try await withCheckedThrowingContinuation { continuation in
+                Terminal.shared.connectReader(
+                    reader,
+                    connectionConfig: params
+                ) { connectedReader, error in
                     if let error {
-                        self.connectionState = .disconnected
                         continuation.resume(throwing: TerminalError.connectionFailed(error.localizedDescription))
                     } else if let connectedReader {
                         continuation.resume(returning: connectedReader)
@@ -121,6 +129,9 @@ final class TerminalService: NSObject {
                     }
                 }
             }
+        } catch {
+            connectionState = .disconnected
+            throw error
         }
 
         connectedReader = connected
@@ -132,20 +143,18 @@ final class TerminalService: NSObject {
         guard connectedReader != nil else { return }
 
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            Terminal.shared.disconnectReader { [weak self] error in
-                Task { @MainActor [weak self] in
-                    guard let self else { return }
-                    if let error {
-                        continuation.resume(throwing: TerminalError.connectionFailed(error.localizedDescription))
-                    } else {
-                        self.connectedReader = nil
-                        self.connectionState = .disconnected
-                        self.logger.info("Reader disconnected")
-                        continuation.resume()
-                    }
+            Terminal.shared.disconnectReader { error in
+                if let error {
+                    continuation.resume(throwing: TerminalError.connectionFailed(error.localizedDescription))
+                } else {
+                    continuation.resume()
                 }
             }
         }
+
+        connectedReader = nil
+        connectionState = .disconnected
+        logger.info("Reader disconnected")
     }
 
     // MARK: - Payment Collection
@@ -163,28 +172,24 @@ final class TerminalService: NSObject {
 
         let intent: PaymentIntent = try await withCheckedThrowingContinuation { continuation in
             Terminal.shared.retrievePaymentIntent(clientSecret: paymentIntentClientSecret) { intent, error in
-                Task { @MainActor in
-                    if let error {
-                        continuation.resume(throwing: TerminalError.paymentFailed(error.localizedDescription))
-                    } else if let intent {
-                        continuation.resume(returning: intent)
-                    } else {
-                        continuation.resume(throwing: TerminalError.paymentFailed("Could not retrieve PaymentIntent"))
-                    }
+                if let error {
+                    continuation.resume(throwing: TerminalError.paymentFailed(error.localizedDescription))
+                } else if let intent {
+                    continuation.resume(returning: intent)
+                } else {
+                    continuation.resume(throwing: TerminalError.paymentFailed("Could not retrieve PaymentIntent"))
                 }
             }
         }
 
         let collected: PaymentIntent = try await withCheckedThrowingContinuation { continuation in
             Terminal.shared.collectPaymentMethod(intent) { collectedIntent, error in
-                Task { @MainActor in
-                    if let error {
-                        continuation.resume(throwing: TerminalError.paymentFailed(error.localizedDescription))
-                    } else if let collectedIntent {
-                        continuation.resume(returning: collectedIntent)
-                    } else {
-                        continuation.resume(throwing: TerminalError.paymentFailed("Collection returned no intent"))
-                    }
+                if let error {
+                    continuation.resume(throwing: TerminalError.paymentFailed(error.localizedDescription))
+                } else if let collectedIntent {
+                    continuation.resume(returning: collectedIntent)
+                } else {
+                    continuation.resume(throwing: TerminalError.paymentFailed("Collection returned no intent"))
                 }
             }
         }
@@ -196,14 +201,12 @@ final class TerminalService: NSObject {
     private func confirm(paymentIntent: PaymentIntent) async throws -> PaymentIntent {
         try await withCheckedThrowingContinuation { continuation in
             Terminal.shared.confirmPaymentIntent(paymentIntent) { confirmedIntent, error in
-                Task { @MainActor in
-                    if let error {
-                        continuation.resume(throwing: TerminalError.paymentFailed(error.localizedDescription))
-                    } else if let confirmedIntent {
-                        continuation.resume(returning: confirmedIntent)
-                    } else {
-                        continuation.resume(throwing: TerminalError.paymentFailed("Confirmation returned no intent"))
-                    }
+                if let error {
+                    continuation.resume(throwing: TerminalError.paymentFailed(error.localizedDescription))
+                } else if let confirmedIntent {
+                    continuation.resume(returning: confirmedIntent)
+                } else {
+                    continuation.resume(throwing: TerminalError.paymentFailed("Confirmation returned no intent"))
                 }
             }
         }
@@ -213,16 +216,17 @@ final class TerminalService: NSObject {
 // MARK: - TerminalDelegate
 
 extension TerminalService: TerminalDelegate {
-    nonisolated func terminal(_ terminal: Terminal, didReportUnexpectedReaderDisconnect reader: Reader) {
-        Task { @MainActor in
-            logger.warning("Unexpected disconnect: \(reader.label ?? "unknown")")
-            connectedReader = nil
-            connectionState = .disconnected
-        }
-    }
-
     nonisolated func terminal(_ terminal: Terminal, didChangeConnectionStatus status: ConnectionStatus) {
-        logger.debug("Connection status: \(String(describing: status))")
+        MainActor.assumeIsolated {
+            logger.debug("Connection status: \(String(describing: status))")
+            // In v4, an unexpected reader disconnect surfaces here as a
+            // transition to `.notConnected` rather than a dedicated callback.
+            if status == .notConnected, connectedReader != nil {
+                logger.warning("Reader disconnected unexpectedly")
+                connectedReader = nil
+                connectionState = .disconnected
+            }
+        }
     }
 }
 
@@ -230,31 +234,34 @@ extension TerminalService: TerminalDelegate {
 
 extension TerminalService: DiscoveryDelegate {
     nonisolated func terminal(_ terminal: Terminal, didUpdateDiscoveredReaders readers: [Reader]) {
-        Task { @MainActor in
+        // The Stripe Terminal SDK delivers delegate callbacks on the main thread,
+        // so we can safely assume MainActor isolation here. This avoids hopping the
+        // non-Sendable `[Reader]` across a Task boundary (Swift 6 region isolation).
+        MainActor.assumeIsolated {
             discoveredReaders = readers
             logger.debug("Discovered \(readers.count) reader(s)")
         }
     }
 }
 
-// MARK: - LocalMobileReaderDelegate
+// MARK: - TapToPayReaderDelegate
 
-extension TerminalService: LocalMobileReaderDelegate {
-    nonisolated func localMobileReader(_ reader: Reader, didStartInstallingUpdate update: ReaderSoftwareUpdate, cancelable: Cancelable?) {
-        Task { @MainActor in
+extension TerminalService: TapToPayReaderDelegate {
+    nonisolated func tapToPayReader(_ reader: Reader, didStartInstallingUpdate update: ReaderSoftwareUpdate, cancelable: Cancelable?) {
+        MainActor.assumeIsolated {
             readerUpdateProgress = 0
             logger.info("Reader software update started")
         }
     }
 
-    nonisolated func localMobileReader(_ reader: Reader, didReportReaderSoftwareUpdateProgress progress: Float) {
-        Task { @MainActor in
+    nonisolated func tapToPayReader(_ reader: Reader, didReportReaderSoftwareUpdateProgress progress: Float) {
+        MainActor.assumeIsolated {
             readerUpdateProgress = progress
         }
     }
 
-    nonisolated func localMobileReader(_ reader: Reader, didFinishInstallingUpdate update: ReaderSoftwareUpdate?, error: Error?) {
-        Task { @MainActor in
+    nonisolated func tapToPayReader(_ reader: Reader, didFinishInstallingUpdate update: ReaderSoftwareUpdate?, error: Error?) {
+        MainActor.assumeIsolated {
             readerUpdateProgress = nil
             if let error {
                 logger.error("Reader update failed: \(error.localizedDescription)")
@@ -264,11 +271,11 @@ extension TerminalService: LocalMobileReaderDelegate {
         }
     }
 
-    nonisolated func localMobileReader(_ reader: Reader, didRequestReaderInput inputOptions: ReaderInputOptions) {
+    nonisolated func tapToPayReader(_ reader: Reader, didRequestReaderInput inputOptions: ReaderInputOptions) {
         logger.debug("Reader input requested: \(String(describing: inputOptions))")
     }
 
-    nonisolated func localMobileReader(_ reader: Reader, didRequestReaderDisplayMessage displayMessage: ReaderDisplayMessage) {
+    nonisolated func tapToPayReader(_ reader: Reader, didRequestReaderDisplayMessage displayMessage: ReaderDisplayMessage) {
         logger.debug("Reader display message: \(String(describing: displayMessage))")
     }
 }
@@ -285,14 +292,22 @@ private final class BackendConnectionTokenProvider: NSObject, ConnectionTokenPro
     }
 
     func fetchConnectionToken(_ completion: @escaping ConnectionTokenCompletionBlock) {
-        Task {
+        Task { [apiClient, logger] in
             do {
                 let response: ConnectionTokenResponse = try await apiClient.request(.connectionToken)
+                logger.debug("Connection token fetched successfully")
                 completion(response.secret, nil)
-                self.logger.debug("Connection token fetched successfully")
             } catch {
-                self.logger.error("Failed to fetch connection token: \(error.localizedDescription)")
-                completion(nil, error)
+                // Re-wrap as a locally-constructed NSError so a non-Sendable error
+                // from the request layer doesn't cross into the SDK completion.
+                let message = error.localizedDescription
+                logger.error("Failed to fetch connection token: \(message)")
+                let wrapped = NSError(
+                    domain: "com.stripie.TokenProvider",
+                    code: -1,
+                    userInfo: [NSLocalizedDescriptionKey: message]
+                )
+                completion(nil, wrapped)
             }
         }
     }

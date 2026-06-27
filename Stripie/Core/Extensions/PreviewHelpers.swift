@@ -25,14 +25,4 @@ extension TransactionListViewModel {
     }
 }
 
-extension TransactionRecord {
-    init(id: String, amount: Int, currency: String, status: String, description: String?, createdAt: String) {
-        self.id = id
-        self.amount = amount
-        self.currency = currency
-        self.status = status
-        self.description = description
-        self.createdAt = createdAt
-    }
-}
 #endif

@@ -18,3 +18,10 @@ Package.resolved
 
 # macOS
 .DS_Store
+.grepai/
+
+# Neon CLI scratch
+.neon
+
+# XcodeGen output (regenerate with: xcodegen generate)
+Stripie.xcodeproj/

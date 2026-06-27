@@ -1,4 +1,4 @@
-import StripeTerminalSDK
+import StripeTerminal
 
 enum ReaderConnectionState: Equatable {
     case disconnected
