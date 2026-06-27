@@ -33,6 +33,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dushin.stripie
         CODE_SIGN_ENTITLEMENTS: Stripie/Stripie.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         GENERATE_INFOPLIST_FILE: true
         INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "Stripie needs your location to accept Tap to Pay payments, as required by Stripe."
         INFOPLIST_KEY_UILaunchScreen_Generation: true
