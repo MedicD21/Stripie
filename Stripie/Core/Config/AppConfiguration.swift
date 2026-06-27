@@ -7,6 +7,7 @@ struct AppConfiguration: Sendable {
 
     let apiBaseURL: URL
     let stripePublishableKey: String
+    let apiKey: String
 
     /// Fatal-error message used when required config is missing/invalid.
     /// Failing fast at launch is preferable to constructing an invalid client.
@@ -23,9 +24,11 @@ struct AppConfiguration: Sendable {
         #if DEBUG
         apiBaseURL = Self.requireURL(env["STRIPIE_API_URL"], fallback: "http://localhost:8000")
         stripePublishableKey = env["STRIPE_PUBLISHABLE_KEY_TEST"] ?? ""
+        apiKey = env["STRIPIE_API_KEY"] ?? ""
         #else
         apiBaseURL = Self.requireURL(env["STRIPIE_API_URL"], fallback: nil)
         stripePublishableKey = env["STRIPE_PUBLISHABLE_KEY_LIVE"] ?? ""
+        apiKey = env["STRIPIE_API_KEY"] ?? ""
         #endif
     }
 }

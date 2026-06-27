@@ -9,6 +9,7 @@ actor APIClient {
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
     private let logger = Logger(subsystem: "com.stripie", category: "APIClient")
+    private let apiKey: String
 
     init(configuration: AppConfiguration = .shared) {
         let config = URLSessionConfiguration.default
@@ -16,6 +17,7 @@ actor APIClient {
         config.timeoutIntervalForResource = 60
         self.session = URLSession(configuration: config)
         self.baseURL = configuration.apiBaseURL
+        self.apiKey = configuration.apiKey
         self.decoder = {
             let d = JSONDecoder()
             d.keyDecodingStrategy = .convertFromSnakeCase
@@ -58,6 +60,9 @@ actor APIClient {
         request.httpMethod = endpoint.method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        if !apiKey.isEmpty {
+            request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
+        }
 
         if let body = endpoint.body {
             request.httpBody = try encoder.encode(AnyEncodable(body))
