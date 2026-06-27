@@ -119,6 +119,10 @@ Triggered when Apple **approves the Tap to Pay entitlement**. Short version
    prod Neon branch.
 5. Archive Release → TestFlight → one real low-value charge + refund on a
    physical iPhone. (First live tap shows Apple's ToS prompt — expected.)
+6. **Production backend is the Good Kitchen Netlify site** (not the retired
+   `stripie-backend` FastAPI prototype). Endpoints live as `stripie-*` Netlify
+   functions; `STRIPIE_API_URL = https://www.thegoodkitchen.org`. See that repo's
+   `docs/stripie/ENV.md`.
 
 ## Reference docs
 - Backend design: `docs/superpowers/specs/2026-06-27-stripie-backend-design.md`
