@@ -31,11 +31,22 @@ final class TerminalService: NSObject {
     private var discoveryCancelable: Cancelable?
     private let logger = Logger(subsystem: "com.stripie", category: "TerminalService")
 
+    /// When true, discovery uses Stripe's simulated Tap to Pay reader so the full
+    /// charge flow can be exercised on the Simulator (no NFC hardware needed).
+    /// Real Tap to Pay requires a physical iPhone, so this defaults on only in
+    /// DEBUG builds and is always false in release.
+    private let simulated: Bool
+
     // MARK: - Init
 
-    init(apiClient: any APIRequesting) {
+    init(apiClient: any APIRequesting, simulated: Bool? = nil) {
         self.apiClient = apiClient
         self.tokenProvider = BackendConnectionTokenProvider(apiClient: apiClient)
+        #if DEBUG
+        self.simulated = simulated ?? true
+        #else
+        self.simulated = simulated ?? false
+        #endif
     }
 
     // MARK: - Initialization
@@ -49,8 +60,14 @@ final class TerminalService: NSObject {
             Terminal.setTokenProvider(tokenProvider)
         }
         Terminal.shared.delegate = self
+        if simulated {
+            // A successful Visa is returned for the simulated tap during collection.
+            Terminal.shared.simulatorConfiguration.simulatedCard = SimulatedCard(type: .visa)
+            logger.info("Stripe Terminal initialized (SIMULATED reader)")
+        } else {
+            logger.info("Stripe Terminal initialized")
+        }
         isInitialized = true
-        logger.info("Stripe Terminal initialized")
     }
 
     // MARK: - Discovery
@@ -64,7 +81,7 @@ final class TerminalService: NSObject {
         connectionState = .discovering
 
         let discoveryConfig = try TapToPayDiscoveryConfigurationBuilder()
-            .setSimulated(false)
+            .setSimulated(simulated)
             .build()
 
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in

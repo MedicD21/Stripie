@@ -74,7 +74,7 @@ schemes:
           value: ""
           isEnabled: true
         - variable: STRIPIE_API_KEY
-          value: NoW3s56fThFsIgd1r0s4BLccXFxGheiDdEsraymdGI4
+          value: 06bed4f4b5285923d6590b9f0423b1ccfdf25fe73d560925373c0d7fd7f01b6a
           isEnabled: true
     test:
       targets:
