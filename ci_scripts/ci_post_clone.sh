@@ -20,3 +20,15 @@ xcodegen generate
 
 echo "==> Project generated:"
 ls -d Stripie.xcodeproj
+
+# Xcode Cloud runs with automatic SPM resolution disabled, so it requires a
+# Package.resolved to already exist. Our .xcodeproj (and its Package.resolved)
+# is generated, not committed, so resolve dependencies here to create it before
+# the build phase runs.
+echo "==> Resolving Swift Package dependencies"
+xcodebuild -resolvePackageDependencies \
+  -project Stripie.xcodeproj \
+  -scheme Stripie
+
+echo "==> Package.resolved:"
+ls -l Stripie.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
