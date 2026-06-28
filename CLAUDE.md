@@ -22,8 +22,20 @@ This repo is **XcodeGen-driven**. `Stripie.xcodeproj` is generated and **gitigno
 - After changing sources layout, settings, Info.plist keys, entitlements, or the
   scheme: edit `project.yml`, then run `xcodegen generate`.
 - Never hand-edit `Stripie.xcodeproj/project.pbxproj` — it gets overwritten.
+- Never set signing/capabilities in Xcode's UI — they live in `project.yml` /
+  `Stripie/Stripie.entitlements` or `xcodegen generate` wipes them. Team ID
+  (`DEVELOPMENT_TEAM: 286LKF859M`) and `CODE_SIGN_STYLE: Automatic` are set at the
+  project level in `project.yml` so they persist (no re-prompting).
 - Info.plist is **generated** (`GENERATE_INFOPLIST_FILE: true`). Add plist keys via
   `INFOPLIST_KEY_<Name>` settings in `project.yml`, not a standalone plist file.
+
+### Xcode Cloud
+The `.xcodeproj` is gitignored, so `ci_scripts/ci_post_clone.sh` installs XcodeGen
+(via Homebrew) and runs `xcodegen generate` after Xcode Cloud clones the repo —
+that's how cloud builds get a project. The scheme is shared (XcodeGen emits it
+under `xcshareddata`). SPM re-resolves Stripe Terminal `~4.0.0` per `project.yml`.
+Note: the run-action scheme env vars (`STRIPIE_API_URL`, keys) do NOT reach an
+Archive/cloud build — see "Moving to production" for the config-shipping fix.
 
 ## Build / test / run (verified commands)
 

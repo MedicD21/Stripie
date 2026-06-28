@@ -12,6 +12,11 @@ packages:
 
 settings:
   base:
+    # Apple Developer Team. Set here (not just in the generated .pbxproj) so it
+    # survives `xcodegen generate` and Xcode stops re-prompting. Inherited by all
+    # targets. Required for Xcode Cloud, which signs non-interactively.
+    DEVELOPMENT_TEAM: 286LKF859M
+    CODE_SIGN_STYLE: Automatic
     # Swift 5 language mode. Swift 6 mode enforces `sending`/region-isolation
     # checks that the Stripe Terminal v4 SDK (not concurrency-audited) cannot
     # satisfy at its callback boundaries. Swift 5 mode keeps async/await and
@@ -44,7 +49,7 @@ targets:
         # un-audited Stripe Terminal SDK types. Combined with Swift 5 language
         # mode (see project-level SWIFT_VERSION), this builds cleanly.
         SWIFT_STRICT_CONCURRENCY: targeted
-        CODE_SIGN_STYLE: Automatic
+        # DEVELOPMENT_TEAM + CODE_SIGN_STYLE are set at the project level (inherited).
         # Tap to Pay on iPhone entitlement requires Apple approval + a provisioning
         # profile that includes com.apple.developer.proximity-reader.payment.acceptance.
         # Add the entitlement to Stripie.entitlements once your account is approved.
