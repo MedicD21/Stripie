@@ -19,7 +19,7 @@ struct PrimaryButton: View {
                 if isLoading {
                     ProgressView()
                         .progressViewStyle(.circular)
-                        .tint(.white)
+                        .tint(Color.tgkPrimaryText)
                         .scaleEffect(0.85)
                 }
                 Text(title)
@@ -27,8 +27,8 @@ struct PrimaryButton: View {
             }
             .frame(maxWidth: .infinity)
             .frame(height: 54)
-            .background(isDisabled ? Color.accentColor.opacity(0.4) : Color.accentColor)
-            .foregroundStyle(.white)
+            .background(isDisabled ? Color.tgkPrimary.opacity(0.4) : Color.tgkPrimary)
+            .foregroundStyle(Color.tgkPrimaryText)
             .clipShape(RoundedRectangle(cornerRadius: StripieTheme.CornerRadius.md))
         }
         .disabled(isDisabled || isLoading)
@@ -51,8 +51,8 @@ struct SecondaryButton: View {
                 .font(.body.weight(.medium))
                 .frame(maxWidth: .infinity)
                 .frame(height: 54)
-                .background(Color(.secondarySystemBackground))
-                .foregroundStyle(.primary)
+                .background(Color.tgkChipBg)
+                .foregroundStyle(Color.tgkText)
                 .clipShape(RoundedRectangle(cornerRadius: StripieTheme.CornerRadius.md))
         }
     }

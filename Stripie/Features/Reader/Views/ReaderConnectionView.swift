@@ -116,7 +116,7 @@ private struct ReaderRow: View {
             HStack {
                 Image(systemName: "iphone")
                     .font(.title3)
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(Color.tgkPrimary)
                     .frame(width: 32)
 
                 VStack(alignment: .leading, spacing: 2) {

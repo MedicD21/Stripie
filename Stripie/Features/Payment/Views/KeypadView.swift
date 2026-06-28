@@ -59,11 +59,11 @@ private struct KeyCell: View {
                 case .digit(let d):
                     Text("\(d)")
                         .font(.title.weight(.regular))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Color.tgkText)
                 case .delete:
                     Image(systemName: "delete.left")
                         .font(.title3)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Color.tgkText)
                 case .empty:
                     EmptyView()
                 }
@@ -79,7 +79,7 @@ private struct KeyCell: View {
     private var backgroundColor: Color {
         switch key {
         case .empty:  return .clear
-        default:      return Color(.secondarySystemBackground)
+        default:      return Color.tgkChipBg
         }
     }
 }

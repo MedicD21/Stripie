@@ -26,6 +26,7 @@ struct RootView: View {
             )
             .tabItem { Label("Reader", systemImage: "iphone.radiowaves.left.and.right") }
         }
+        .tint(.tgkPrimary)
         .task { appState.onAppear() }
     }
 }
