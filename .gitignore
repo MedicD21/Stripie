@@ -25,3 +25,6 @@ Package.resolved
 
 # XcodeGen output (regenerate with: xcodegen generate)
 Stripie.xcodeproj/
+
+# XcodeGen-generated Info.plist
+Stripie/Info.plist
