@@ -152,6 +152,8 @@ struct TransactionRowView: View {
     }
 }
 
+#if DEBUG
 #Preview {
     TransactionListView(viewModel: .preview())
 }
+#endif

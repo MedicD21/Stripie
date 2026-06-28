@@ -165,6 +165,7 @@ struct ReaderStatusBadge: View {
     }
 }
 
+#if DEBUG
 #Preview("Disconnected") {
     ReaderConnectionView(viewModel: .preview())
 }
@@ -176,3 +177,4 @@ struct ReaderStatusBadge: View {
         ReaderStatusBadge(state: .connecting)
     }
 }
+#endif

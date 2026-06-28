@@ -90,6 +90,8 @@ struct PaymentView: View {
     }
 }
 
+#if DEBUG
 #Preview {
     PaymentView(viewModel: .preview())
 }
+#endif
