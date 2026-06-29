@@ -1,42 +1,46 @@
 import SwiftUI
 import AVFoundation
 
-/// Full-screen video loading screen shown on cold launch. Plays `TGK_T2P.mp4`
-/// once over the brand-dark background (matching the OS launch screen), then
-/// calls `onFinished`. Falls back to finishing immediately if the asset is
-/// missing, and after a safety timeout if playback never reports completion.
-struct SplashVideoView: View {
+/// Full-screen loading screen shown on cold launch. Plays the background-removed
+/// `TGK_T2P.mov` (HEVC with alpha) once over the brand-dark launch background
+/// (matching the OS launch screen), then calls `onFinished`. Falls back to
+/// finishing immediately if the asset is missing, and after a safety cap if
+/// playback never reports completion.
+struct SplashView: View {
     let onFinished: () -> Void
 
-    private static let maxDuration: Duration = .seconds(8)
+    private static let maxDuration: TimeInterval = 8
+
+    private var videoURL: URL? {
+        Bundle.main.url(forResource: "TGK_T2P", withExtension: "mov")
+    }
 
     var body: some View {
         ZStack {
             Color.tgkLaunchBackground
                 .ignoresSafeArea()
 
-            if let url = Bundle.main.url(forResource: "TGK_T2P", withExtension: "mp4") {
-                VideoPlayerLayerView(url: url, onEnded: onFinished)
-                    .ignoresSafeArea()
+            if let videoURL {
+                TransparentVideoView(url: videoURL, onEnded: onFinished)
+                    .frame(maxWidth: 320, maxHeight: 320)
             }
         }
         .task {
-            // Safety net: never trap the user on the splash if the video is
-            // missing or never posts its end-of-playback notification.
-            if Bundle.main.url(forResource: "TGK_T2P", withExtension: "mp4") == nil {
+            guard videoURL != nil else {
                 onFinished()
                 return
             }
-            try? await Task.sleep(for: Self.maxDuration)
+            try? await Task.sleep(for: .seconds(Self.maxDuration))
             onFinished()
         }
     }
 }
 
-// MARK: - AVPlayerLayer host
+// MARK: - Transparent AVPlayer host
 
-/// Plays a video once, muted, aspect-fit, with no transport controls.
-private struct VideoPlayerLayerView: UIViewRepresentable {
+/// Plays an HEVC-with-alpha video once, muted, aspect-fit, with a clear
+/// background so its transparency composites over whatever is behind it.
+private struct TransparentVideoView: UIViewRepresentable {
     let url: URL
     let onEnded: () -> Void
 
@@ -58,11 +62,18 @@ private final class PlayerContainerView: UIView {
         self.onEnded = onEnded
         super.init(frame: .zero)
 
+        isOpaque = false
         backgroundColor = .clear
         player.isMuted = true
         player.actionAtItemEnd = .pause
+
         playerLayer.player = player
         playerLayer.videoGravity = .resizeAspect
+        playerLayer.backgroundColor = UIColor.clear.cgColor
+        // Preserve the video's alpha channel when compositing.
+        playerLayer.pixelBufferAttributes = [
+            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA
+        ]
         layer.addSublayer(playerLayer)
 
         NotificationCenter.default.addObserver(

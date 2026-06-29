@@ -9,7 +9,7 @@ struct RootView: View {
             content
 
             if !splashFinished {
-                SplashVideoView {
+                SplashView {
                     guard !splashFinished else { return }
                     withAnimation(.easeOut(duration: 0.4)) { splashFinished = true }
                 }
