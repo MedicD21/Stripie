@@ -1,18 +1,17 @@
-import SwiftUI
 import AVFoundation
+import SwiftUI
 
-/// Full-screen loading screen shown on cold launch. Plays the background-removed
-/// `TGK_T2P.mov` (HEVC with alpha) once over the brand-dark launch background
-/// (matching the OS launch screen), then calls `onFinished`. Falls back to
-/// finishing immediately if the asset is missing, and after a safety cap if
-/// playback never reports completion.
+/// Full-screen loading screen shown on cold launch. Plays `TGK_T2P.mp4` once
+/// over the brand-dark launch background (matching the OS launch screen), then
+/// calls `onFinished`. Falls back to finishing immediately if the asset is
+/// missing, and after a safety cap if playback never reports completion.
 struct SplashView: View {
     let onFinished: () -> Void
 
     private static let maxDuration: TimeInterval = 8
 
     private var videoURL: URL? {
-        Bundle.main.url(forResource: "TGK_T2P", withExtension: "mov")
+        Bundle.main.url(forResource: "TGK_T2P", withExtension: "mp4")
     }
 
     var body: some View {
