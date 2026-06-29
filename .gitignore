@@ -23,8 +23,13 @@ Package.resolved
 # Neon CLI scratch
 .neon
 
-# XcodeGen output (regenerate with: xcodegen generate)
-Stripie.xcodeproj/
+# XcodeGen output (regenerate with: xcodegen generate). The project itself is
+# generated, but commit the SHARED SCHEME so Xcode Cloud can discover it (the
+# post-clone hook regenerates the rest before building).
+Stripie.xcodeproj/*
+!Stripie.xcodeproj/xcshareddata
+Stripie.xcodeproj/xcshareddata/*
+!Stripie.xcodeproj/xcshareddata/xcschemes
 
 # XcodeGen-generated Info.plist
 Stripie/Info.plist
