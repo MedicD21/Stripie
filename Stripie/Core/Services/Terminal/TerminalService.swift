@@ -49,6 +49,19 @@ final class TerminalService: NSObject {
         #endif
     }
 
+    // MARK: - OS support (App Review requirement 1.4)
+
+    /// Minimum iOS version Apple requires for full Tap to Pay on iPhone support.
+    private static let minimumOSVersion = OperatingSystemVersion(majorVersion: 17, minorVersion: 6, patchVersion: 0)
+
+    /// False on devices older than iOS 17.6 (where the SDK reports
+    /// `osVersionNotSupported`). Always true for the simulated reader so the
+    /// Simulator can still exercise the flow.
+    var isOSVersionSupported: Bool {
+        if simulated { return true }
+        return ProcessInfo.processInfo.isOperatingSystemAtLeast(Self.minimumOSVersion)
+    }
+
     // MARK: - Initialization
 
     func initialize() {
@@ -154,6 +167,31 @@ final class TerminalService: NSObject {
         connectedReader = connected
         connectionState = .connected(connected)
         logger.info("Connected to reader: \(connected.label ?? "unknown")")
+    }
+
+    /// Best-effort warm-up so Tap to Pay is ready before checkout (App Review
+    /// requirements 1.5 and 5.6). Runs discovery and connects to the first
+    /// available reader. Silently no-ops if already connected or on failure —
+    /// the Reader screen remains the explicit fallback for granting permission.
+    func warmUp() async {
+        guard isInitialized, isOSVersionSupported,
+              connectedReader == nil, !isDiscovering,
+              case .disconnected = connectionState else { return }
+        do {
+            try await startDiscovery()
+            // Discovery delivers readers asynchronously via the delegate.
+            for _ in 0..<20 {
+                if let reader = discoveredReaders.first {
+                    stopDiscovery()
+                    try await connect(to: reader)
+                    return
+                }
+                try await Task.sleep(for: .milliseconds(250))
+            }
+            stopDiscovery()
+        } catch {
+            logger.debug("Tap to Pay warm-up skipped: \(error.localizedDescription)")
+        }
     }
 
     func disconnect() async throws {

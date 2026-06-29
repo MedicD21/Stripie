@@ -13,17 +13,36 @@ final class PaymentViewModel {
     var description: String = ""
     var error: AppError?
 
+    /// The most recent successfully-captured PaymentIntent id, used to attach a
+    /// receipt after the charge completes.
+    private(set) var lastPaymentIntentId: String?
+
     // MARK: - Dependencies
 
     private let terminal: TerminalService
+    private let location: LocationService
     private let apiClient: any APIRequesting
     private let logger = Logger(subsystem: "com.stripie", category: "PaymentViewModel")
+
+    /// True while we're connecting/warming up the reader on demand (when the user
+    /// taps Charge before Tap to Pay is ready). Drives the "Preparing…" indicator.
+    private(set) var isPreparingReader = false
 
     // MARK: - Computed
 
     var readerConnectionState: ReaderConnectionState { terminal.connectionState }
     var isReaderConnected: Bool { terminal.connectionState.isConnected }
-    var canCharge: Bool { enteredAmountCents > 0 && isReaderConnected && !paymentState.isProcessing }
+    var isTapToPaySupported: Bool { terminal.isOSVersionSupported }
+    var readerUpdateProgress: Float? { terminal.readerUpdateProgress }
+    var canCharge: Bool {
+        enteredAmountCents > 0 && isReaderConnected && isTapToPaySupported && !paymentState.isProcessing
+    }
+    /// Whether the Tap to Pay button should be tappable. Deliberately does NOT
+    /// require a connected reader (App Review 5.3: the button is never greyed out
+    /// for that reason) — tapping connects on demand.
+    var canStartCharge: Bool {
+        enteredAmountCents > 0 && isTapToPaySupported && !paymentState.isProcessing && !isPreparingReader
+    }
 
     var formattedAmount: String {
         let dollars = Double(enteredAmountCents) / 100.0
@@ -32,12 +51,46 @@ final class PaymentViewModel {
 
     // MARK: - Init
 
-    init(terminal: TerminalService, apiClient: any APIRequesting) {
+    init(terminal: TerminalService, apiClient: any APIRequesting, location: LocationService) {
         self.terminal = terminal
         self.apiClient = apiClient
+        self.location = location
     }
 
     // MARK: - Actions
+
+    /// UI entry point for the Charge button and quick-charge chips. If Tap to Pay
+    /// isn't connected yet, it prepares the reader first (which presents Apple's
+    /// T&C on first use), then charges — so the button is never a dead end.
+    func startCharge() async {
+        guard canStartCharge else { return }
+        if !isReaderConnected {
+            await ensureReaderReady()
+            guard isReaderConnected else { return }  // error already surfaced
+        }
+        await charge()
+    }
+
+    /// Sets the amount from a quick-charge preset and immediately starts the flow.
+    func startQuickCharge(cents: Int) async {
+        enteredAmountCents = cents
+        await startCharge()
+    }
+
+    private func ensureReaderReady() async {
+        isPreparingReader = true
+        defer { isPreparingReader = false }
+
+        _ = await location.requestAuthorization()
+        guard location.isAuthorized else {
+            error = .location(.permissionDenied)
+            return
+        }
+        await terminal.warmUp()
+        if !isReaderConnected {
+            error = .terminal(.readerNotConnected)
+        }
+    }
 
     func charge() async {
         guard canCharge else { return }
@@ -67,6 +120,7 @@ final class PaymentViewModel {
                 .capturePaymentIntent(id: intentResponse.id)
             )
 
+            lastPaymentIntentId = intentResponse.id
             paymentState = .succeeded(amount: enteredAmountCents, currency: "usd")
             logger.info("Payment captured: \(intentResponse.id)")
 
@@ -88,11 +142,30 @@ final class PaymentViewModel {
         }
     }
 
+    /// Sends a digital receipt for the last captured payment. The backend emails
+    /// it (via Stripe `receipt_email`) and stores the contact in the payments DB.
+    /// At least one of `email`/`phone` must be non-empty.
+    func sendReceipt(email: String?, phone: String?) async throws {
+        guard let id = lastPaymentIntentId else { throw AppError.generic("No payment to receipt.") }
+        let trimmedEmail = email?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedPhone = phone?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let request = SendReceiptRequest(
+            email: (trimmedEmail?.isEmpty == false) ? trimmedEmail : nil,
+            phone: (trimmedPhone?.isEmpty == false) ? trimmedPhone : nil
+        )
+        guard request.email != nil || request.phone != nil else {
+            throw AppError.generic("Enter an email or phone number.")
+        }
+        let _: SendReceiptResponse = try await apiClient.request(.sendReceipt(id: id, request))
+        logger.info("Receipt sent for \(id)")
+    }
+
     func reset() {
         paymentState = .idle
         enteredAmountCents = 0
         description = ""
         error = nil
+        lastPaymentIntentId = nil
     }
 
     func dismissError() {

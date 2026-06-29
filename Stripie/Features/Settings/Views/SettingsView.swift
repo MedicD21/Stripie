@@ -5,6 +5,7 @@ struct SettingsView: View {
     @Environment(AuthSessionStore.self) private var auth
     @State private var editorTarget: QuickChargeEditorTarget?
     @State private var isSigningOut = false
+    private let biometrics = BiometricService()
 
     var body: some View {
         @Bindable var settings = settings
@@ -52,6 +53,26 @@ struct SettingsView: View {
                         }
                     }
                     .pickerStyle(.segmented)
+                }
+
+                Section("Tap to Pay on iPhone") {
+                    NavigationLink {
+                        TapToPayHelpView()
+                    } label: {
+                        Label("How to use Tap to Pay", systemImage: "wave.3.right.circle.fill")
+                    }
+                }
+
+                if biometrics.isAvailable {
+                    Section {
+                        Toggle(isOn: $settings.biometricLockEnabled) {
+                            Label("Require \(biometrics.biometryLabel)", systemImage: "faceid")
+                        }
+                    } header: {
+                        Text("Security")
+                    } footer: {
+                        Text("Lock Stripie when it reopens; unlock with \(biometrics.biometryLabel).")
+                    }
                 }
 
                 Section {

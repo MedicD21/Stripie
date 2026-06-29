@@ -4,6 +4,7 @@ enum APIEndpoint {
     case connectionToken
     case createPaymentIntent(CreatePaymentIntentRequest)
     case capturePaymentIntent(id: String)
+    case sendReceipt(id: String, SendReceiptRequest)
     case transactions(limit: Int, startingAfter: String?)
 
     var path: String {
@@ -14,6 +15,8 @@ enum APIEndpoint {
             return "/payment_intents"
         case .capturePaymentIntent(let id):
             return "/payment_intents/\(id)/capture"
+        case .sendReceipt(let id, _):
+            return "/payment_intents/\(id)/receipt"
         case .transactions:
             return "/transactions"
         }
@@ -21,7 +24,7 @@ enum APIEndpoint {
 
     var method: String {
         switch self {
-        case .connectionToken, .createPaymentIntent, .capturePaymentIntent:
+        case .connectionToken, .createPaymentIntent, .capturePaymentIntent, .sendReceipt:
             return "POST"
         case .transactions:
             return "GET"
@@ -31,6 +34,7 @@ enum APIEndpoint {
     var body: (any Encodable)? {
         switch self {
         case .createPaymentIntent(let req): return req
+        case .sendReceipt(_, let req): return req
         default: return nil
         }
     }

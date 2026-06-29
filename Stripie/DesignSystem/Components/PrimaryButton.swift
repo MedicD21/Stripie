@@ -2,12 +2,14 @@ import SwiftUI
 
 struct PrimaryButton: View {
     private let title: String
+    private let systemImage: String?
     private let isLoading: Bool
     private let isDisabled: Bool
     private let action: () -> Void
 
-    init(_ title: String, isLoading: Bool = false, isDisabled: Bool = false, action: @escaping () -> Void) {
+    init(_ title: String, systemImage: String? = nil, isLoading: Bool = false, isDisabled: Bool = false, action: @escaping () -> Void) {
         self.title = title
+        self.systemImage = systemImage
         self.isLoading = isLoading
         self.isDisabled = isDisabled
         self.action = action
@@ -21,6 +23,9 @@ struct PrimaryButton: View {
                         .progressViewStyle(.circular)
                         .tint(Color.tgkPrimaryText)
                         .scaleEffect(0.85)
+                } else if let systemImage {
+                    Image(systemName: systemImage)
+                        .font(.body.weight(.semibold))
                 }
                 Text(title)
                     .font(.body.weight(.semibold))

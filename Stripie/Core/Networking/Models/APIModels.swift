@@ -36,6 +36,19 @@ struct CapturePaymentIntentResponse: Decodable, Sendable {
     let createdAt: String?
 }
 
+// MARK: - Receipt
+
+/// Customer contact captured at checkout so the backend can send a digital
+/// receipt (Stripe emails when `email` is set) and store it in the payments DB.
+struct SendReceiptRequest: Encodable, Sendable {
+    let email: String?
+    let phone: String?
+}
+
+struct SendReceiptResponse: Decodable, Sendable {
+    let ok: Bool
+}
+
 // MARK: - Transaction List
 
 struct TransactionListResponse: Decodable, Sendable {

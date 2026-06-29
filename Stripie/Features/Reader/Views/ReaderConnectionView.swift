@@ -21,7 +21,11 @@ struct ReaderConnectionView: View {
             .navigationBarTitleDisplayMode(.large)
             .toolbar { toolbarContent }
             .overlay {
-                if viewModel.isLoading && viewModel.discoveredReaders.isEmpty {
+                // Configuration progress while connecting (App Review 3.9.1):
+                // make clear Tap to Pay isn't ready yet.
+                if case .connecting = viewModel.connectionState {
+                    LoadingOverlay(message: "Preparing Tap to Pay… not ready yet")
+                } else if viewModel.isLoading && viewModel.discoveredReaders.isEmpty {
                     LoadingOverlay(message: "Searching for readers…")
                 }
             }

@@ -17,12 +17,24 @@ final class SettingsStore {
         didSet { persistQuickCharges() }
     }
 
+    /// When true, returning to the app requires Face ID / Touch ID (App Review 1.7).
+    var biometricLockEnabled: Bool {
+        didSet { defaults.set(biometricLockEnabled, forKey: Key.biometricLock) }
+    }
+
+    /// Whether the one-time "try a payment" invitation has been shown (req 3.9).
+    var hasCompletedTapToPayIntro: Bool {
+        didSet { defaults.set(hasCompletedTapToPayIntro, forKey: Key.introShown) }
+    }
+
     private let defaults: UserDefaults
     private let logger = Logger(subsystem: "com.stripie", category: "SettingsStore")
 
     private enum Key {
         static let theme = "settings.themePreference"
         static let quickCharges = "settings.quickCharges"
+        static let biometricLock = "settings.biometricLockEnabled"
+        static let introShown = "settings.hasCompletedTapToPayIntro"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -42,6 +54,9 @@ final class SettingsStore {
         } else {
             self.quickCharges = SettingsStore.defaultQuickCharges
         }
+
+        self.biometricLockEnabled = defaults.bool(forKey: Key.biometricLock)
+        self.hasCompletedTapToPayIntro = defaults.bool(forKey: Key.introShown)
     }
 
     // MARK: - Quick Charge mutations

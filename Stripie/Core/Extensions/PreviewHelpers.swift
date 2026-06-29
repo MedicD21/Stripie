@@ -6,7 +6,7 @@ extension PaymentViewModel {
     static func preview() -> PaymentViewModel {
         let client = APIClient()
         let terminal = TerminalService(apiClient: client)
-        return PaymentViewModel(terminal: terminal, apiClient: client)
+        return PaymentViewModel(terminal: terminal, apiClient: client, location: LocationService())
     }
 }
 

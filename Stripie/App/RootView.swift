@@ -2,7 +2,10 @@ import SwiftUI
 
 struct RootView: View {
     @Environment(AuthSessionStore.self) private var auth
+    @Environment(SettingsStore.self) private var settings
     @State private var splashFinished = false
+    @State private var biometricUnlocked = false
+    private let biometrics = BiometricService()
 
     var body: some View {
         ZStack {
@@ -31,7 +34,15 @@ struct RootView: View {
         case .signedOut:
             LoginView()
         case .signedIn:
-            MainTabView()
+            if settings.biometricLockEnabled && biometrics.isAvailable && !biometricUnlocked {
+                BiometricLockView(biometryLabel: biometrics.biometryLabel) {
+                    let ok = await biometrics.authenticate()
+                    if ok { biometricUnlocked = true }
+                    return ok
+                }
+            } else {
+                MainTabView()
+            }
         }
     }
 }
@@ -46,7 +57,8 @@ struct MainTabView: View {
             PaymentView(
                 viewModel: PaymentViewModel(
                     terminal: appState.terminalService,
-                    apiClient: appState.apiClient
+                    apiClient: appState.apiClient,
+                    location: appState.locationService
                 )
             )
             .tabItem { Label("Charge", systemImage: "creditcard.fill") }
@@ -68,7 +80,11 @@ struct MainTabView: View {
                 .tabItem { Label("Settings", systemImage: "gearshape.fill") }
         }
         .tint(.tgkPrimary)
-        .task { appState.onAppear() }
+        .task {
+            appState.onAppear()
+            // Warm up Tap to Pay so it's ready at checkout (reqs 1.5 / 5.6).
+            await appState.terminalService.warmUp()
+        }
     }
 }
 

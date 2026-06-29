@@ -42,6 +42,7 @@ enum NetworkError: LocalizedError, Equatable {
 enum TerminalError: LocalizedError, Equatable {
     case notInitialized
     case readerNotConnected
+    case osVersionNotSupported
     case paymentFailed(String)
     case discoveryFailed(String)
     case connectionFailed(String)
@@ -53,6 +54,8 @@ enum TerminalError: LocalizedError, Equatable {
             return "Stripe Terminal is not initialized."
         case .readerNotConnected:
             return "No reader is connected. Please connect a reader first."
+        case .osVersionNotSupported:
+            return "Tap to Pay on iPhone requires iOS 17.6 or later. Please update in Settings → General → Software Update."
         case .paymentFailed(let msg):
             return "Payment failed: \(msg)"
         case .discoveryFailed(let msg):

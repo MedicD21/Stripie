@@ -84,6 +84,6 @@ private extension PaymentViewModel {
         apiClient: any APIRequesting = MockAPIClient()
     ) -> PaymentViewModel {
         let terminal = TerminalService(apiClient: apiClient)
-        return PaymentViewModel(terminal: terminal, apiClient: apiClient)
+        return PaymentViewModel(terminal: terminal, apiClient: apiClient, location: LocationService())
     }
 }
