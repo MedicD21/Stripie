@@ -126,12 +126,14 @@ struct TransactionRowView: View {
 
     private var iconName: String {
         switch transaction.status {
-        case .succeeded:       return "checkmark"
-        case .processing:      return "clock"
-        case .requiresCapture: return "clock.badge.exclamationmark"
-        case .cancelled:       return "xmark"
-        case .failed:          return "exclamationmark"
-        case .unknown:         return "questionmark"
+        case .succeeded:         return "checkmark"
+        case .processing:        return "clock"
+        case .requiresCapture:   return "clock.badge.exclamationmark"
+        case .cancelled:         return "xmark"
+        case .failed:            return "exclamationmark"
+        case .refunded,
+             .partiallyRefunded: return "arrow.uturn.backward"
+        case .unknown:           return "questionmark"
         }
     }
 
@@ -139,6 +141,7 @@ struct TransactionRowView: View {
         switch transaction.status {
         case .succeeded: return .green.opacity(0.15)
         case .failed:    return .red.opacity(0.15)
+        case .refunded, .partiallyRefunded: return .blue.opacity(0.15)
         default:         return .orange.opacity(0.15)
         }
     }
@@ -147,6 +150,7 @@ struct TransactionRowView: View {
         switch transaction.status {
         case .succeeded: return .green
         case .failed:    return .red
+        case .refunded, .partiallyRefunded: return .blue
         default:         return .orange
         }
     }

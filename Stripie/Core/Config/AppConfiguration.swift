@@ -12,6 +12,9 @@ struct AppConfiguration: Sendable {
     let authBaseURL: URL
     let stripePublishableKey: String
     let apiKey: String
+    /// Optional explicit Stripe Terminal Location id (`tml_…`). If empty, the app
+    /// auto-selects the account's first location via the SDK at connect time.
+    let locationId: String
 
     /// Reads a config value. In DEBUG, prefers Xcode scheme environment variables
     /// (for local/simulator runs); in Release it reads from the app's Info.plist,
@@ -51,5 +54,6 @@ struct AppConfiguration: Sendable {
         )
         stripePublishableKey = publishableKey
         apiKey = Self.value(env: "STRIPIE_API_KEY", plist: "StripieAPIKey") ?? ""
+        locationId = Self.value(env: "STRIPIE_LOCATION_ID", plist: "StripieLocationId") ?? ""
     }
 }

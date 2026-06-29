@@ -30,6 +30,8 @@ final class TerminalService: NSObject {
     private let tokenProvider: BackendConnectionTokenProvider
     private var discoveryCancelable: Cancelable?
     private let logger = Logger(subsystem: "com.stripie", category: "TerminalService")
+    /// Optional explicit location override from configuration.
+    private let configuredLocationId: String
 
     /// When true, discovery uses Stripe's simulated Tap to Pay reader so the full
     /// charge flow can be exercised on the Simulator (no NFC hardware needed).
@@ -39,9 +41,10 @@ final class TerminalService: NSObject {
 
     // MARK: - Init
 
-    init(apiClient: any APIRequesting, simulated: Bool? = nil) {
+    init(apiClient: any APIRequesting, simulated: Bool? = nil, configuration: AppConfiguration = .shared) {
         self.apiClient = apiClient
         self.tokenProvider = BackendConnectionTokenProvider(apiClient: apiClient)
+        self.configuredLocationId = configuration.locationId
         #if DEBUG
         self.simulated = simulated ?? true
         #else
@@ -138,9 +141,24 @@ final class TerminalService: NSObject {
 
         connectionState = .connecting
 
+        // Tap to Pay requires a valid Stripe Terminal Location. Resolve it from
+        // (1) the reader, (2) an explicit config override, then (3) the account's
+        // first location via the SDK. The simulated reader carries its own.
+        let resolvedLocationId: String
+        if let readerLoc = reader.location?.stripeId, !readerLoc.isEmpty {
+            resolvedLocationId = readerLoc
+        } else if !configuredLocationId.isEmpty {
+            resolvedLocationId = configuredLocationId
+        } else if let fetched = await firstAvailableLocationId(), !fetched.isEmpty {
+            resolvedLocationId = fetched
+        } else {
+            connectionState = .disconnected
+            throw TerminalError.connectionFailed("No Stripe Terminal location found. Create one in your Stripe dashboard under Terminal → Locations.")
+        }
+
         let params = try TapToPayConnectionConfigurationBuilder(
             delegate: self,
-            locationId: reader.location?.stripeId ?? ""
+            locationId: resolvedLocationId
         ).build()
 
         let connected: Reader
@@ -167,6 +185,22 @@ final class TerminalService: NSObject {
         connectedReader = connected
         connectionState = .connected(connected)
         logger.info("Connected to reader: \(connected.label ?? "unknown")")
+    }
+
+    /// Fetches the account's first Stripe Terminal Location id via the SDK, so we
+    /// don't have to hardcode it. Returns nil if none exist or on error.
+    private func firstAvailableLocationId() async -> String? {
+        await withCheckedContinuation { (continuation: CheckedContinuation<String?, Never>) in
+            let params = try? ListLocationsParametersBuilder().build()
+            Terminal.shared.listLocations(parameters: params) { [logger] locations, _, error in
+                if let error {
+                    logger.error("listLocations failed: \(error.localizedDescription)")
+                    continuation.resume(returning: nil)
+                } else {
+                    continuation.resume(returning: locations?.first?.stripeId)
+                }
+            }
+        }
     }
 
     /// Best-effort warm-up so Tap to Pay is ready before checkout (App Review

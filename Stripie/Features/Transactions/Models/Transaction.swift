@@ -33,23 +33,27 @@ struct Transaction: Identifiable, Equatable, Sendable {
 enum TransactionStatus: String, Equatable, Sendable {
     case succeeded
     case processing
-    case requiresCapture  = "requires_capture"
+    case requiresCapture     = "requires_capture"
     case cancelled
     case failed
+    case refunded
+    case partiallyRefunded   = "partially_refunded"
     case unknown
 
     var displayName: String {
         switch self {
-        case .succeeded:       return "Succeeded"
-        case .processing:      return "Processing"
-        case .requiresCapture: return "Pending"
-        case .cancelled:       return "Cancelled"
-        case .failed:          return "Failed"
-        case .unknown:         return "Unknown"
+        case .succeeded:         return "Succeeded"
+        case .processing:        return "Processing"
+        case .requiresCapture:   return "Pending"
+        case .cancelled:         return "Cancelled"
+        case .failed:            return "Failed"
+        case .refunded:          return "Refunded"
+        case .partiallyRefunded: return "Partially Refunded"
+        case .unknown:           return "Unknown"
         }
     }
 
     var isTerminal: Bool {
-        self == .succeeded || self == .cancelled || self == .failed
+        self == .succeeded || self == .cancelled || self == .failed || self == .refunded
     }
 }
