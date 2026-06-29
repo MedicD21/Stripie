@@ -6,6 +6,10 @@ struct AppConfiguration: Sendable {
     static let shared = AppConfiguration()
 
     let apiBaseURL: URL
+    /// Base URL for admin authentication (the Good Kitchen admin-portal-auth
+    /// function). Defaults to production regardless of `apiBaseURL`, so login
+    /// works even when payments are pointed at a local backend in DEBUG.
+    let authBaseURL: URL
     let stripePublishableKey: String
     let apiKey: String
 
@@ -41,6 +45,10 @@ struct AppConfiguration: Sendable {
         #endif
 
         apiBaseURL = Self.requireURL(Self.value(env: "STRIPIE_API_URL", plist: "StripieAPIURL"), fallback: urlFallback)
+        authBaseURL = Self.requireURL(
+            Self.value(env: "STRIPIE_AUTH_URL", plist: "StripieAuthURL"),
+            fallback: "https://www.thegoodkitchen.org"
+        )
         stripePublishableKey = publishableKey
         apiKey = Self.value(env: "STRIPIE_API_KEY", plist: "StripieAPIKey") ?? ""
     }

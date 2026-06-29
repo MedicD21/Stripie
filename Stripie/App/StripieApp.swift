@@ -8,6 +8,9 @@ struct StripieApp: App {
         WindowGroup {
             RootView()
                 .environment(appState)
+                .environment(appState.settingsStore)
+                .environment(appState.authSession)
+                .preferredColorScheme(appState.settingsStore.themePreference.colorScheme)
         }
     }
 }

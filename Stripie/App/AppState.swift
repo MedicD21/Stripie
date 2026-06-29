@@ -9,6 +9,8 @@ final class AppState {
     let apiClient: APIClient
     let terminalService: TerminalService
     let locationService: LocationService
+    let settingsStore: SettingsStore
+    let authSession: AuthSessionStore
 
     private let logger = Logger(subsystem: "com.stripie", category: "AppState")
 
@@ -17,6 +19,8 @@ final class AppState {
         self.apiClient = client
         self.locationService = LocationService()
         self.terminalService = TerminalService(apiClient: client)
+        self.settingsStore = SettingsStore()
+        self.authSession = AuthSessionStore()
     }
 
     func onAppear() {

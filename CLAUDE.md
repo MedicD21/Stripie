@@ -104,6 +104,36 @@ Currently set as **Xcode scheme env vars** (in `project.yml` `schemes:`).
 - The DEBUG `STRIPIE_API_URL` defaults to `http://localhost:8000`; on a physical
   device `localhost` won't reach the Mac — use a LAN IP or tunnel.
 
+## Admin authentication
+
+The app is gated behind admin login (`Features/Auth/`). It **reuses the Good
+Kitchen backend's existing `admin-portal-auth` Netlify function** — no auth
+backend was built for Stripie.
+
+- **Flow** (passwordless, mirrors the website): `request_code` (email) →
+  `verify_code` (email + 6-digit code) returns a Bearer token → `status` returns
+  the profile incl. `is_super_admin`. Endpoint:
+  `https://www.thegoodkitchen.org/.netlify/functions/admin-portal-auth` (CORS-open).
+- **iOS pieces**: `AuthService` (actor, `AuthServicing` protocol — `MockAuthService`
+  is the test stub) builds its own requests; `AuthSessionStore` (`@Observable`)
+  owns auth state and is injected via `@Environment`. `RootView` switches on
+  `.loading`/`.signedOut`/`.signedIn` → `LoginView` vs `MainTabView`. Terminal
+  init runs only after sign-in (so login never triggers Bluetooth/location prompts).
+- **Auth has its own base URL**: `StripieAuthURL` (Info.plist) / `STRIPIE_AUTH_URL`
+  (env), read by `AppConfiguration.authBaseURL`, defaulting to production
+  thegoodkitchen.org **regardless of `STRIPIE_API_URL`** — so login works even
+  when payments point at `localhost:8000` in DEBUG.
+- **Token storage**: Keychain (`KeychainStore`, no entitlement needed for a
+  single-app generic-password item); last profile cached in UserDefaults.
+- **No auto-logout**: a stored token only clears on an explicit 401/403 from the
+  server or manual sign-out. Transient network errors keep the user signed in
+  (optimistic, using the cached profile).
+- **Who is an admin** is managed on the backend, not in the app: env allowlists
+  (`ADMIN_PORTAL_ALLOWED_EMAILS`, `SUPER_ADMIN_EMAILS`) or the
+  `public.admin_portal_access` Neon table. Admin and super-admin currently get
+  identical app access. Backend prerequisites: `ADMIN_PORTAL_AUTH_SECRET` set +
+  email-sending enabled (both already power the website admin portal).
+
 ## Conventions
 - `@Observable` + `@MainActor` for all view models — never `ObservableObject`/`@Published`.
 - All API calls go through `APIRequesting` (protocol); `APIClient` (actor) is the

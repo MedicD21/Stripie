@@ -25,4 +25,13 @@ extension TransactionListViewModel {
     }
 }
 
+/// No-op auth service so previews never touch the network.
+struct PreviewAuthService: AuthServicing {
+    var profile = AdminProfile(email: "admin@thegoodkitchen.org", displayName: "Test Admin")
+    func requestLoginCode(email: String) async throws {}
+    func verifyLoginCode(email: String, code: String) async throws -> String { "preview-token" }
+    func fetchProfile(token: String) async throws -> AdminProfile { profile }
+    func logout(token: String) async throws {}
+}
+
 #endif

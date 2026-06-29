@@ -45,7 +45,10 @@ targets:
         # Reference the build settings so version/build stay defined in one place.
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
-        UILaunchScreen: {}
+        # Static OS splash: solid brand-dark background so it blends seamlessly
+        # into the TGK_T2P video loading screen the app shows on cold launch.
+        UILaunchScreen:
+          UIColorName: LaunchBackground
         # Stripe Terminal validates these at discovery and aborts (SIGABRT) if missing.
         NSLocationWhenInUseUsageDescription: "Stripie needs your location to accept Tap to Pay payments, as required by Stripe."
         NSBluetoothAlwaysUsageDescription: "Stripie uses Bluetooth to connect to card readers for Tap to Pay."
@@ -65,9 +68,12 @@ targets:
         ITSAppUsesNonExemptEncryption: false
         # Production config that SHIPS in the binary (scheme env vars do not).
         StripieAPIURL: "https://www.thegoodkitchen.org"
+        # Admin login (admin-portal-auth) base URL. Same host as the API; defined
+        # explicitly so it's independent of where payments are pointed.
+        StripieAuthURL: "https://www.thegoodkitchen.org"
         StripieAPIKey: "06bed4f4b5285923d6590b9f0423b1ccfdf25fe73d560925373c0d7fd7f01b6a"
-        # Live Stripe publishable key (pk_live_...). Fill before shipping real charges.
-        StripiePublishableKey: ""
+        # Live Stripe publishable key — used by Release/Archive builds via Info.plist.
+        StripiePublishableKey: "pk_live_51SovKy1uelyqomPM8RrsLV7TJ4q1c3LyFSADTTRyjT8S31C7lNsvs3V3XDY4SrFNo0BcsYfY8epwn4gDHlWZN44B00B75XnZMz"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dushin.stripie
@@ -107,7 +113,7 @@ schemes:
           value: http://localhost:8000
           isEnabled: true
         - variable: STRIPE_PUBLISHABLE_KEY_TEST
-          value: ""
+          value: "pk_test_51SovKy1uelyqomPMSmrr5jAxHCrqIy2hdbD6rYo0sNdcwIR4X0n2p22rVKiXql3HZJ1CYJ5hFWwN3An4zQJjG9z4007dP39zlr"
           isEnabled: true
         - variable: STRIPIE_API_KEY
           value: 06bed4f4b5285923d6590b9f0423b1ccfdf25fe73d560925373c0d7fd7f01b6a

@@ -99,6 +99,11 @@ extension Color {
     static let tgkIncome      = tgkDynamic(TGKPalette.income)
     static let tgkExpense     = tgkDynamic(TGKPalette.expense)
 
+    /// Solid background shared by the OS launch screen (`LaunchBackground` color
+    /// set, referenced in project.yml) and the in-app video splash, so the two
+    /// transition seamlessly. Always the brand-dark page color.
+    static let tgkLaunchBackground = Color("LaunchBackground")
+
     // Back-compat aliases for existing call sites
     static let stripieAccent     = tgkPrimary
     static let stripieBackground = tgkPage

@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct PaymentView: View {
+    @Environment(SettingsStore.self) private var settings
     @State private var viewModel: PaymentViewModel
     @State private var showConfirmation = false
 
@@ -17,6 +18,11 @@ struct PaymentView: View {
                     .padding(.top, 32)
 
                 Spacer()
+
+                if !settings.quickCharges.isEmpty {
+                    quickChargeBar
+                        .padding(.bottom, 12)
+                }
 
                 KeypadView(
                     onDigit: viewModel.appendDigit,
@@ -79,6 +85,43 @@ struct PaymentView: View {
         .animation(.easeInOut(duration: 0.2), value: viewModel.paymentState.isProcessing)
     }
 
+    private var quickChargeBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: StripieTheme.Spacing.sm) {
+                ForEach(settings.quickCharges) { charge in
+                    Button {
+                        startQuickCharge(charge)
+                    } label: {
+                        VStack(spacing: 2) {
+                            Text(charge.formattedAmount)
+                                .font(.headline)
+                                .monospacedDigit()
+                            if !charge.label.isEmpty {
+                                Text(charge.label)
+                                    .font(.caption2)
+                                    .foregroundStyle(Color.tgkTextMuted)
+                            }
+                        }
+                        .padding(.horizontal, StripieTheme.Spacing.md)
+                        .padding(.vertical, StripieTheme.Spacing.sm)
+                        .background(Color.tgkChipBg)
+                        .foregroundStyle(Color.tgkText)
+                        .clipShape(Capsule())
+                        .opacity(viewModel.isReaderConnected ? 1 : 0.4)
+                    }
+                    .disabled(viewModel.paymentState.isProcessing || !viewModel.isReaderConnected)
+                }
+            }
+            .padding(.horizontal)
+        }
+    }
+
+    /// Sets the amount from a preset and immediately starts the Tap to Pay flow.
+    private func startQuickCharge(_ charge: QuickCharge) {
+        viewModel.enteredAmountCents = charge.amountCents
+        Task { await viewModel.charge() }
+    }
+
     private var chargeButton: some View {
         PrimaryButton(
             viewModel.paymentState.isProcessing ? viewModel.paymentState.statusMessage : "Charge \(viewModel.formattedAmount)",
@@ -93,5 +136,6 @@ struct PaymentView: View {
 #if DEBUG
 #Preview {
     PaymentView(viewModel: .preview())
+        .environment(SettingsStore())
 }
 #endif
