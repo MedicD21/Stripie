@@ -142,29 +142,51 @@ backend was built for Stripie.
   `convert*SnakeCase`); backend responses must emit snake_case.
 - Tests use Swift Testing (`@Test`/`@Suite`/`#expect`), not XCTest.
 
-## Moving to production
+## Production status & config (current)
 
-Triggered when Apple **approves the Tap to Pay entitlement**. Short version
-(full runbook in the reference docs):
+Production config **ships in the binary** via `Info.plist` keys set in
+`project.yml` (`StripieAPIURL`, `StripieAPIKey`, `StripiePublishableKey`,
+`StripieAuthURL`) — `AppConfiguration` reads them via `Bundle.main` in Release.
+No `.xcconfig` migration was needed; scheme env vars are DEBUG-only. The Tap to
+Pay entitlement is **active** in `Stripie/Stripie.entitlements` and verified
+embedded in signed builds. Release builds use the **real** reader
+(`simulated=false`) and the production Good Kitchen backend
+(`https://www.thegoodkitchen.org`). Real Tap to Pay needs a **physical iPhone
+XS+ on iOS 17.6+** (the app blocks older OS — see requirement 1.4).
 
-1. Uncomment `com.apple.developer.proximity-reader.payment.acceptance` in
-   `Stripie/Stripie.entitlements`; refresh the provisioning profile.
-2. **Move config out of the scheme.** Scheme env vars do **not** ship in
-   Archive/TestFlight/App Store builds — the Release `AppConfiguration` branch
-   would hit `requireURL(…, fallback: nil)` and **crash at launch**. Before the
-   first archive, move prod config to an `.xcconfig` (referenced in
-   `project.yml`) or `INFOPLIST_KEY_…` read via `Bundle.main`, not
-   `ProcessInfo.environment`.
-3. Set prod `STRIPIE_API_URL` (HTTPS), `pk_live_…`, matching live `STRIPIE_API_KEY`.
-4. Backend: `sk_live_` secret, a **separate live-mode** webhook + its `whsec_…`,
-   deploy via the included Dockerfile over HTTPS, `alembic upgrade head` on the
-   prod Neon branch.
-5. Archive Release → TestFlight → one real low-value charge + refund on a
-   physical iPhone. (First live tap shows Apple's ToS prompt — expected.)
-6. **Production backend is the Good Kitchen Netlify site** (not the retired
-   `stripie-backend` FastAPI prototype). Endpoints live as `stripie-*` Netlify
-   functions; `STRIPIE_API_URL = https://www.thegoodkitchen.org`. See that repo's
-   `docs/stripie/ENV.md`.
+Backend = Good Kitchen Netlify site (`stripie-*` functions + redirects). The
+FastAPI `stripie-backend` prototype is retired. Refunds flow via the
+`charge.refunded` webhook → `stripie_payments` marked refunded + a separate
+`Refunds` expense txn in `financial_transactions` + `live_stats` netted. Needs
+`STRIPE_WEBHOOK_ACTIVE=true` on the production Netlify context.
+
+### Tap to Pay distribution gate (the real blocker)
+Apple grants the entitlement in **two stages**. We have stage 1 (development:
+install on registered test devices). App Store / TestFlight / Unlisted uploads
+require stage 2 — Apple **lifting the "development distribution restriction"**
+after reviewing the app against the Tap to Pay App Review requirements. Until
+lifted, distribution provisioning profiles omit the entitlement and uploads to
+App Store Connect fail. Submit the filled
+`App Review Requirements Checklist` + the three flow recordings (Existing-User,
+Checkout, New-User note) by replying to the **TTPOI Entitlements** case email.
+
+### Go-live sequence (Unlisted, single internal merchant)
+1. Wait for Apple to lift the dev-distribution restriction (stage 2 above).
+2. Archive Release → Xcode Organizer → Distribute App → App Store Connect
+   (bump `CURRENT_PROJECT_VERSION` in `project.yml` for each upload).
+3. Request **Unlisted App Distribution**:
+   developer.apple.com/app-store/unlisted-app-distribution (matches the
+   "Unlisted" distribution type on the checklist).
+4. Submit for standard App Review + complete App Store Connect metadata and
+   **App Privacy** labels (declare payment data + customer email/phone captured
+   for receipts).
+5. On approval, share the **private (unlisted) App Store link** with admins;
+   they install from the App Store and get auto-updates. Admin access is still
+   gated by the in-app email-code login (admin/super-admin only).
+
+TestFlight is an alternative for onboarding admins the moment the entitlement
+clears, but it's beta-oriented (90-day build expiry) — Unlisted is the long-term
+home.
 
 ## Reference docs
 - Backend design: `docs/superpowers/specs/2026-06-27-stripie-backend-design.md`
