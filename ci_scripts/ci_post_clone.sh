@@ -26,6 +26,12 @@ ls -d Stripie.xcodeproj
 # is generated, not committed, so resolve dependencies here to create it before
 # the build phase runs.
 echo "==> Resolving Swift Package dependencies"
+# Xcode Cloud sets the IDEDisableAutomaticPackageResolution user default to
+# enforce reproducible builds from a committed Package.resolved. We don't
+# commit one (it's generated fresh from project.yml every run), so this
+# default makes even our explicit -resolvePackageDependencies call refuse to
+# run. Override it for this run so resolution can proceed from scratch.
+defaults write com.apple.dt.Xcode IDEDisableAutomaticPackageResolution -bool NO
 xcodebuild -resolvePackageDependencies \
   -project Stripie.xcodeproj \
   -scheme Stripie
