@@ -82,7 +82,7 @@ final class ReaderViewModel {
     // MARK: - Private
 
     private func ensureLocationPermission() async -> Bool {
-        let status = await location.requestAuthorization()
+        _ = await location.requestAuthorization()
         guard location.isAuthorized else {
             error = .location(.permissionDenied)
             return false
