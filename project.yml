@@ -41,7 +41,7 @@ targets:
     info:
       path: Stripie/Info.plist
       properties:
-        CFBundleDisplayName: Stripie
+        CFBundleDisplayName: TGK Pay
         # Reference the build settings so version/build stay defined in one place.
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"

@@ -28,8 +28,19 @@ Package.resolved
 # post-clone hook regenerates the rest before building).
 Stripie.xcodeproj/*
 !Stripie.xcodeproj/xcshareddata
+!Stripie.xcodeproj/project.xcworkspace
 Stripie.xcodeproj/xcshareddata/*
 !Stripie.xcodeproj/xcshareddata/xcschemes
+# Also commit the resolved SPM pin: Xcode Cloud disables live package
+# resolution for reproducibility, so a fresh clone needs this file already in
+# place or `xcodebuild -resolvePackageDependencies` refuses to run at all.
+# (xcuserdata under project.xcworkspace stays excluded by the *.xcworkspace/xcuserdata/ rule above.)
+Stripie.xcodeproj/project.xcworkspace/*
+!Stripie.xcodeproj/project.xcworkspace/xcshareddata
+Stripie.xcodeproj/project.xcworkspace/xcshareddata/*
+!Stripie.xcodeproj/project.xcworkspace/xcshareddata/swiftpm
+Stripie.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/*
+!Stripie.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
 
 # XcodeGen-generated Info.plist
 Stripie/Info.plist
