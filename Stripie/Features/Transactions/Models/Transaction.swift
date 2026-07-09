@@ -25,8 +25,15 @@ struct Transaction: Identifiable, Equatable, Sendable {
         self.status = TransactionStatus(rawValue: record.status) ?? .unknown
         self.description = record.description
 
+        // Backend serializes via JS `Date.toISOString()`, which always includes
+        // milliseconds (e.g. "2026-07-09T13:52:00.123Z") — the default
+        // ISO8601DateFormatter doesn't parse that fractional component and
+        // silently fails, so fractional seconds must be requested explicitly.
         let formatter = ISO8601DateFormatter()
-        self.createdAt = formatter.date(from: record.createdAt) ?? Date(timeIntervalSince1970: 0)
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        self.createdAt = formatter.date(from: record.createdAt)
+            ?? ISO8601DateFormatter().date(from: record.createdAt)
+            ?? Date(timeIntervalSince1970: 0)
     }
 }
 

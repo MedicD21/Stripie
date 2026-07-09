@@ -36,6 +36,11 @@ struct PaymentView: View {
                     .padding(.top, 16)
                     .padding(.bottom, 32)
             }
+            // Caps the column to a phone-like width so the keypad doesn't
+            // stretch edge-to-edge in the iPad split view; a no-op on iPhone
+            // since the screen is already narrower than the cap.
+            .frame(maxWidth: 420)
+            .frame(maxWidth: .infinity)
             .navigationTitle("Charge")
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(isPresented: $showConfirmation) {

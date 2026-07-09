@@ -22,7 +22,7 @@ settings:
     # satisfy at its callback boundaries. Swift 5 mode keeps async/await and
     # actor isolation without those errors.
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "1.5.0"
+    MARKETING_VERSION: "1.5.1"
     CURRENT_PROJECT_VERSION: "1"
 
 targets:

@@ -52,21 +52,37 @@ struct RootView: View {
 struct MainTabView: View {
     @Environment(AppState.self) private var appState
 
+    /// iPad has room to show Charge and Transactions side by side, so they
+    /// collapse into one tab there instead of two.
+    private var isPad: Bool { UIDevice.current.userInterfaceIdiom == .pad }
+
     var body: some View {
         TabView {
-            PaymentView(
-                viewModel: PaymentViewModel(
-                    terminal: appState.terminalService,
-                    apiClient: appState.apiClient,
-                    location: appState.locationService
+            if isPad {
+                PaymentSplitView(
+                    paymentViewModel: PaymentViewModel(
+                        terminal: appState.terminalService,
+                        apiClient: appState.apiClient,
+                        location: appState.locationService
+                    ),
+                    transactionsViewModel: TransactionListViewModel(apiClient: appState.apiClient)
                 )
-            )
-            .tabItem { Label("Charge", systemImage: "creditcard.fill") }
+                .tabItem { Label("Charge", systemImage: "creditcard.fill") }
+            } else {
+                PaymentView(
+                    viewModel: PaymentViewModel(
+                        terminal: appState.terminalService,
+                        apiClient: appState.apiClient,
+                        location: appState.locationService
+                    )
+                )
+                .tabItem { Label("Charge", systemImage: "creditcard.fill") }
 
-            TransactionListView(
-                viewModel: TransactionListViewModel(apiClient: appState.apiClient)
-            )
-            .tabItem { Label("Transactions", systemImage: "list.bullet.rectangle") }
+                TransactionListView(
+                    viewModel: TransactionListViewModel(apiClient: appState.apiClient)
+                )
+                .tabItem { Label("Transactions", systemImage: "list.bullet.rectangle") }
+            }
 
             ReaderConnectionView(
                 viewModel: ReaderViewModel(
